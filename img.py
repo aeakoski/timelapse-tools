@@ -24,6 +24,12 @@ def brightness( im_file, isObject = False ):
 
 ## Helpers
 
+def isSunset(filename):
+    return (18 <= int(filename[8:10]) and int(filename[8:10]) <= 20)
+
+def isDay(filename):
+    return (10 <= int(filename[8:10]) and int(filename[8:10]) <= 17)
+
 def isNight(filename):
     return (22 <= int(filename[8:10]) or int(filename[8:10]) <= 7)
 
@@ -39,6 +45,10 @@ def getPhotoNames():
         photoPath = "photos/" + path.stem + ".jpg"
         if path.is_file():
             if isNight(path.stem):
+                continue
+            if isSunset(path.stem):
+                continue
+            if isDay(path.stem):
                 continue
             if isJunk(path.stem):
                 continue
@@ -108,12 +118,13 @@ def doBrightness(photoPath):
     b = brightness(photoPath)
     c = 0
     img = Image.open(photoPath)
-    while ((b < 120) or (125 < b)):
+    threshold = 123
+    while ((b < (threshold -2)) or ((threshold +2) < b)):
         filter = ImageEnhance.Brightness(img)
-        if b < 112:
-            img = filter.enhance(1.01)
+        if b < threshold:
+            img = filter.enhance(1.03)
         else:
-            img = filter.enhance(0.99)
+            img = filter.enhance(0.97)
         b = brightness(img, True)
         c+=1
         if 100 < c:
@@ -128,9 +139,11 @@ def imageManipulation(files):
         photoPath = "./sequence/"+str(idx).zfill(4)+"_a.jpg"
 
         #img = doHistogram(photoPath)
-        #equalize_this(image_file=photoPath, with_plot=True)
-        #img = doBrightness(photoPath)
-        #img.save(photoPath)
+
+        equalize_this(image_file=photoPath, with_plot=True)
+
+        # img = doBrightness(photoPath)
+        # img.save(photoPath)
 
         idx +=1
 
@@ -191,7 +204,7 @@ def main():
     renamePhotos(files)
     print("Apply image equalizer")
     imageManipulation(files)
-    os.system("ffmpeg -pattern_type glob -i './sequence/*_a.jpg' -y ./video_hist_b.mp4")
+    os.system("ffmpeg -pattern_type glob -i './sequence/*_a.jpg' -y ./video_orig_noday_hist.mp4")
 
 
     print("Done")
