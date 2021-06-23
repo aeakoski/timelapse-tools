@@ -21,3 +21,4 @@ This tool filters:
 - Photos taken before a specific date
 - Photos taken during the night
 - Equalizes the brightness of all photos to a specific hard coded value calculated using the mean brightness of a random photo
+- Equalizes histogram of image according to https://levelup.gitconnected.com/introduction-to-histogram-equalization-for-digital-image-enhancement-420696db9e43

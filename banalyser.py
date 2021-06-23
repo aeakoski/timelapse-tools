@@ -3,7 +3,9 @@ import struct
 import shutil
 import os
 from tqdm import tqdm
+import sys
 import numpy as np
+
 
 import cv2
 import json
@@ -20,47 +22,6 @@ def brightness( im_file, isObject = False ):
         im = Image.open(im_file).convert('L')
     stat = ImageStat.Stat(im)
     return stat.mean[0]
-
-
-## Helpers
-
-def isNight(filename):
-    return (22 <= int(filename[8:10]) or int(filename[8:10]) <= 7)
-
-def isJunk(filename):
-    return int(filename[:10]) < 2021052819
-
-
-#Business logic
-
-def getPhotoNames():
-    files=[]
-    for path in (pathlib.Path("photos").iterdir()):
-        photoPath = "photos/" + path.stem + ".jpg"
-        if path.is_file():
-            if isNight(path.stem):
-                continue
-            if isJunk(path.stem):
-                continue
-            files.append(path.stem)
-
-
-    return files
-
-
-def renamePhotos(files):
-    basePath = "./sequence"
-    if not os.path.isdir(basePath):
-        os.mkdir(basePath)
-    idx = 0
-
-    for file in tqdm(files):
-        photoPath = "./sequence/"+str(idx).zfill(4)
-        shutil.copy("./photos/"+file+".jpg", photoPath + "_a.jpg")
-        shutil.copy("./photos/"+file+".jpg", photoPath + "_b.jpg")
-
-        idx +=1
-
 
 def doHistogram(img_filename):
     #load file as pillow Image
@@ -102,37 +63,36 @@ def doHistogram(img_filename):
 
     #convert NumPy array to pillow Image and write to file
     eq_img = Image.fromarray(eq_img_array, mode='L')
-    return eq_img
+    eq_img.show()
+
+
 
 def doBrightness(photoPath):
     b = brightness(photoPath)
     c = 0
     img = Image.open(photoPath)
-    while ((b < 120) or (125 < b)):
+    threshold = 153
+    while ((b < (threshold - 2)) or ((threshold + 2) < b)):
         filter = ImageEnhance.Brightness(img)
-        if b < 112:
-            img = filter.enhance(1.01)
+        if b < threshold:
+            print("up")
+            img = filter.enhance(1.03)
         else:
-            img = filter.enhance(0.99)
+            print("down")
+            img = filter.enhance(0.97)
+
         b = brightness(img, True)
+        print(b)
         c+=1
         if 100 < c:
             break
-    return img
 
-def imageManipulation(files):
-    basePath = "./sequence"
-    idx = 0
+    img_old = Image.open(photoPath)
+    Image.fromarray(np.hstack((np.array(img_old),np.array(img)))).show()
 
-    for file in tqdm(files):
-        photoPath = "./sequence/"+str(idx).zfill(4)+"_a.jpg"
 
-        #img = doHistogram(photoPath)
-        #equalize_this(image_file=photoPath, with_plot=True)
-        #img = doBrightness(photoPath)
-        #img.save(photoPath)
 
-        idx +=1
+
 
 
 
@@ -165,7 +125,6 @@ def equalize_this(image_file, with_plot=False, gray_scale=False):
 
     if with_plot:
         fig = plt.figure(figsize=(10, 20))
-
         ax1 = fig.add_subplot(2, 2, 1)
         ax1.axis("off")
         ax1.title.set_text('Original')
@@ -173,27 +132,24 @@ def equalize_this(image_file, with_plot=False, gray_scale=False):
         ax2.axis("off")
         ax2.title.set_text("Equalized")
 
-        # ax1.imshow(image_src, cmap=cmap_val)
-        # ax2.imshow(image_eq, cmap=cmap_val)
-        plt.imsave(image_file, image_eq, cmap=cmap_val)
-        plt.close()
+        print("Showing iamge")
+        ax1.imshow(image_src, cmap=cmap_val)
+        ax2.imshow(image_eq, cmap=cmap_val)
+
+
         return True
     return image_eq
 
 
+
 def main():
 
-    print("Filter bad photos based on time")
-    files = getPhotoNames()
-    files.sort()
-    print("Number of photos: " + str(len(files)))
-    print("Rename photos to sequence")
-    renamePhotos(files)
-    print("Apply image equalizer")
-    imageManipulation(files)
-    os.system("ffmpeg -pattern_type glob -i './sequence/*_a.jpg' -y ./video_hist_b.mp4")
-
-
+    #print(brightness(sys.argv[1]))
+    #doBrightness(sys.argv[1])
+    #doHistogram(sys.argv[1])
+    equalize_this(image_file=sys.argv[1], with_plot=True)
+    equalize_this(image_file=sys.argv[2], with_plot=True)
+    plt.show()
     print("Done")
 
 main()
